@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 16, 2024 at 08:21 PM
+-- Generation Time: Aug 18, 2024 at 10:03 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -87,12 +87,12 @@ CREATE TABLE `breed_animal` (
 --
 
 INSERT INTO `breed_animal` (`breed_animal_id`, `stock_animal`, `breed_date`, `animal_id`, `breed_id`) VALUES
-(48, 80, '2024-07-26', 29, 35),
-(49, 65, '2024-07-27', 29, 36),
+(48, 60, '2024-07-26', 29, 35),
+(49, 50, '2024-07-27', 29, 36),
 (54, 75, '2024-07-30', 32, 37),
-(63, 10, '2024-08-02', 30, 47),
-(67, NULL, '2024-08-14', 41, 51),
-(68, 30, '2024-08-16', 42, 52);
+(63, 17, '2024-08-17', 30, 47),
+(67, 60, '2024-08-17', 41, 51),
+(68, 60, '2024-08-17', 42, 52);
 
 -- --------------------------------------------------------
 
@@ -188,7 +188,11 @@ CREATE TABLE `dead_records` (
 INSERT INTO `dead_records` (`dead_record_id`, `number_quantity`, `type_disease`, `dead_date`, `breed_id`) VALUES
 (16, 20, 'Polio', '2024-07-30', 35),
 (21, 25, 'Drowning', '2024-07-30', 37),
-(22, 15, 'Being dirty', '2024-07-30', 36);
+(22, 15, 'Being dirty', '2024-07-30', 36),
+(24, 20, 'Sun Light', '2024-08-17', 35),
+(25, 10, 'Laying Eggs', '2024-08-17', 52),
+(26, 15, 'Eating Mud', '2024-08-17', 36),
+(27, 3, 'Turning Evil', '2024-08-18', 47);
 
 -- --------------------------------------------------------
 
@@ -244,7 +248,15 @@ INSERT INTO `product_records` (`product_record_id`, `product_id`, `product_quant
 (42, 1, 10, '2024-08-14'),
 (44, 5, 100, '2024-08-15'),
 (45, 1, 50, '2024-08-15'),
-(46, 7, 100, '2024-08-16');
+(46, 7, 100, '2024-08-16'),
+(47, 7, 100, '2024-07-31'),
+(48, 5, 80, '2024-07-30'),
+(49, 3, 60, '2024-07-28'),
+(50, 1, 300, '2024-07-27'),
+(51, 3, 300, '2024-08-18'),
+(52, 1, 500, '2024-08-19'),
+(53, 5, 200, '2024-08-17'),
+(54, 7, 150, '2024-08-13');
 
 -- --------------------------------------------------------
 
@@ -357,7 +369,7 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT for table `animal_type`
 --
 ALTER TABLE `animal_type`
-  MODIFY `animal_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `animal_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT for table `breed_animal`
@@ -387,7 +399,7 @@ ALTER TABLE `contact_us`
 -- AUTO_INCREMENT for table `dead_records`
 --
 ALTER TABLE `dead_records`
-  MODIFY `dead_record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `dead_record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `knowledge_type`
@@ -399,7 +411,7 @@ ALTER TABLE `knowledge_type`
 -- AUTO_INCREMENT for table `product_records`
 --
 ALTER TABLE `product_records`
-  MODIFY `product_record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `product_record_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `product_type`
