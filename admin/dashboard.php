@@ -9,6 +9,79 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
   exit();
 }
 
+function rowCount($db, $tbname) {
+  // SQL query to count rows
+  $sql = "SELECT COUNT(*) as count FROM $tbname";
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+
+  // Fetch the result
+  return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function totalCount($db, $tbname, $colname) {
+  // SQL query to count rows
+  $sql = "SELECT SUM($colname) as total FROM $tbname";
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+
+  // Fetch the result
+  return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function getProductRecords($db) {
+  $sql = "SELECT SUM(product_quantity) AS qty, 
+          product_date AS date
+          FROM product_records
+          GROUP BY date
+          ORDER BY date DESC
+          LIMIT 14";
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+  return $stmt->fetchAll();
+}
+
+function getDeadRecords($db) {
+  $sql = "SELECT bt.breed_type, ba.stock_animal, 
+          SUM(dr.number_quantity) AS dead, dr.dead_date AS date
+          FROM dead_records dr
+          JOIN breed_animal ba
+              ON dr.breed_id = ba.breed_id
+          JOIN breed_technology bt
+              ON dr.breed_id = bt.breed_id
+          GROUP BY dr.breed_id
+          ORDER BY date ASC
+          LIMIT 8";
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+  return $stmt->fetchAll();
+}
+
+function getStock($db) {
+  $sql = "SELECT at.animal_type, SUM(ba.stock_animal) AS total_stock_animal
+          FROM animal_type at
+          JOIN breed_animal ba
+              ON at.animal_id = ba.animal_id
+          GROUP BY at.animal_type
+          ORDER BY total_stock_animal DESC";
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+  return $stmt->fetchAll();
+}
+
+function getStockRecord($db) {
+  $sql = "SELECT bt.breed_type AS type, 
+          ba.stock_animal AS stock, ba.breed_date AS date
+          FROM breed_animal ba
+          JOIN breed_technology bt
+            ON ba.breed_id = bt.breed_id
+          ORDER BY ba.breed_date DESC
+          LIMIT 3";
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+  return $stmt->fetchAll();
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -57,7 +130,7 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
         <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
       </li>
       <li class="nav-item d-none d-sm-inline-block">
-        <a href="index.php" class="nav-link">Log out</a>
+        <a href="index.php" class="nav-link btn btn-default" data-toggle="modal" data-target="#modal-default">Log out</a>
       </li>
     </ul>
 
@@ -71,6 +144,29 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
     </ul>
   </nav>
   <!-- /.navbar -->
+  
+  <div class="modal fade" id="modal-default">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Log Out</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>You are Logging out of Admin AH. Continue?</p>
+        </div>
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="window.location.href='index.php';">Confirm</button>
+        </div>
+      </div>
+      <!-- /.modal-content -->
+    </div>
+    <!-- /.modal-dialog -->
+  </div>
+  <!-- /.modal -->
 
   <!-- Main Sidebar Container -->
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -306,13 +402,8 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
             <div class="small-box bg-info">
               <div class="inner">
               <?php 
-                    // SQL query to count rows
-                    $sql = "SELECT COUNT(*) as count FROM animal_type";
-                    $stmt = $db->prepare($sql);
-                    $stmt->execute();
-                
                     // Fetch the result
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $row = rowCount($db, 'animal_type');
                     
                     // Display the count
                     echo '<h3>' . $row['count'] . '</h3>';
@@ -332,13 +423,8 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
             <div class="small-box bg-success">
               <div class="inner">
               <?php 
-                    // SQL query to count rows
-                    $sql = "SELECT COUNT(*) as count FROM breed_technology";
-                    $stmt = $db->prepare($sql);
-                    $stmt->execute();
-                
                     // Fetch the result
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $row = rowCount($db, 'breed_technology');
                     
                     // Display the count
                     echo '<h3>' . $row['count'] . '</h3>';
@@ -358,13 +444,8 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
             <div class="small-box bg-warning">
               <div class="inner">
               <?php 
-                    // SQL query to count rows
-                    $sql = "SELECT COUNT(*) as count FROM product_type";
-                    $stmt = $db->prepare($sql);
-                    $stmt->execute();
-                
                     // Fetch the result
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $row = rowCount($db, 'product_type');
                     
                     // Display the count
                     echo '<h3>' . $row['count'] . '</h3>';
@@ -384,22 +465,17 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
             <div class="small-box bg-danger">
               <div class="inner">
               <?php 
-                    // SQL query to count rows
-                    $sql = "SELECT COUNT(*) as count FROM knowledge_type";
-                    $stmt = $db->prepare($sql);
-                    $stmt->execute();
-                
                     // Fetch the result
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $row = rowCount($db, 'knowledge_type');
                     
                     // Display the count
-                    echo '<h3>' . $row['count'] . '</h3>';
+                    echo '<h3>' . $row['count'] . ' <sup style="font-size: 20px">Videos</sup></h3>';
                   ?>
 
-                <p>Videos for Knowledge Sharing</p>
+                <p>for Knowledge Sharing</p>
               </div>
               <div class="icon">
-                <i class="ion ion-person-add"></i>
+                <i class="fas fa-video"></i>
               </div>
               <a href="viewknowledgetype.php" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
             </div>
@@ -412,13 +488,8 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
               <div class="info-box-content">
                 <span class="info-box-text">Messages from Customers</span>
                 <?php 
-                      // SQL query to count rows
-                      $sql = "SELECT COUNT(*) as count FROM contact_us";
-                      $stmt = $db->prepare($sql);
-                      $stmt->execute();
-                  
                       // Fetch the result
-                      $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                      $row = rowCount($db, 'contact_us');
                       
                       // Display the count
                       echo '<span class="info-box-number">' . $row['count'] . '</span>';
@@ -440,16 +511,11 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
               <div class="info-box-content">
                 <span class="info-box-text">Total Animal In-stock</span>
                 <?php 
-                      // SQL query to count rows
-                      $sql = "SELECT SUM(stock_animal) as total_stock FROM breed_animal";
-                      $stmt = $db->prepare($sql);
-                      $stmt->execute();
-                  
                       // Fetch the result
-                      $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                      $row = totalCount($db, 'breed_animal', 'stock_animal');
                       
                       // Display the count
-                      echo '<span class="info-box-number">' . $row['total_stock'] . '</span>';
+                      echo '<span class="info-box-number">' . $row['total'] . '</span>';
                     ?>
               </div>
               <!-- /.info-box-content -->
@@ -464,16 +530,11 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
               <div class="info-box-content">
                 <span class="info-box-text">Product Inventory</span>
                 <?php 
-                      // SQL query to count rows
-                      $sql = "SELECT SUM(product_quantity) as total_stock FROM product_records";
-                      $stmt = $db->prepare($sql);
-                      $stmt->execute();
-                  
                       // Fetch the result
-                      $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                      $row = totalCount($db, 'product_records', 'product_quantity');
                       
                       // Display the count
-                      echo '<span class="info-box-number">' . $row['total_stock'] . '</span>';
+                      echo '<span class="info-box-number">' . $row['total'] . '</span>';
                     ?>
               </div>
               <!-- /.info-box-content -->
@@ -488,13 +549,8 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
               <div class="info-box-content">
                 <span class="info-box-text">Company Members</span>
                 <?php 
-                      // SQL query to count rows
-                      $sql = "SELECT COUNT(*) as count FROM company_info";
-                      $stmt = $db->prepare($sql);
-                      $stmt->execute();
-                  
                       // Fetch the result
-                      $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                      $row = rowCount($db, 'company_info');
                       
                       // Display the count
                       echo '<span class="info-box-number">' . $row['count'] . '</span>';
@@ -516,20 +572,54 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
         <div class="card">
             <div class="card-header border-0">
               <div class="d-flex justify-content-between">
-                <h3 class="card-title">Online Store Visitors</h3>
-                <a href="javascript:void(0);">View Report</a>
+                <h3 class="card-title">Products Produced Over 2 Weeks</h3>
+                <a href="viewproductrecord.php#records">View Report</a>
               </div>
             </div>
             <div class="card-body">
               <div class="d-flex">
                 <p class="d-flex flex-column">
-                  <span class="text-bold text-lg">820</span>
-                  <span>Visitors Over Time</span>
+                  <?php 
+                    /* NOTICE! Due to the varying units of the products, the numbers are not
+                    the accurate representation of data. Further methods of calculation are needed,
+                    which I didn't bother with. >_< */
+                    // Fetch data from database
+                    $productCount = totalCount($db, 'product_records', 'product_quantity'); 
+                    $rows = getProductRecords($db);
+                    $dates = array_column($rows, 'date');
+                    $quantities = array_column($rows, 'qty');
+
+                    // Split the data into two datasets
+                    $first7Dates = array_slice($dates, 0, 7);
+                    $next7Dates = array_slice($dates, 7, 7);
+                    $first7Quantities = array_slice($quantities, 0, 7);
+                    $next7Quantities = array_slice($quantities, 7, 7); 
+
+                    // Combine the totals from the two slices
+                    $totalFirst7Quantities = array_sum($first7Quantities);
+                    $totalNext7Quantities = array_sum($next7Quantities);
+
+                    // Calculate the Percentage
+                    $percen = 100 - (($totalNext7Quantities / $totalFirst7Quantities) * 100);
+                  ?>
+                  <span>
+                    <span class="text-bold text-lg">
+                      <?php echo $productCount['total']; ?>
+                    </span>
+                     Products
+                  </span>
+                  <span>Produced Over Time</span>
                 </p>
                 <p class="ml-auto d-flex flex-column text-right">
-                  <span class="text-success">
-                    <i class="fas fa-arrow-up"></i> 12.5%
-                  </span>
+                  <?php if ($totalFirst7Quantities > $totalNext7Quantities) { ?>
+                    <span class="text-success">
+                      <i class="fas fa-arrow-up"></i> <?php echo number_format($percen, 1); ?>%
+                    </span>
+                  <?php } else { ?>
+                    <span class="text-danger">
+                      <i class="fas fa-arrow-down"></i> <?php echo number_format($percen, 1); ?>%
+                    </span>
+                  <?php } ?>
                   <span class="text-muted">Since last week</span>
                 </p>
               </div>
@@ -553,182 +643,70 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
           <!-- /.card -->
                   
           <div class="card">
-              <div class="card-header border-0">
-                <div class="d-flex justify-content-between">
-                  <h3 class="card-title">Sales</h3>
-                  <a href="javascript:void(0);">View Report</a>
-                </div>
+            <div class="card-header border-0">
+              <div class="d-flex justify-content-between">
+                <h3 class="card-title">Dead Records</h3>
+                <a href="viewdeadrecord.php">View Report</a>
               </div>
-              <div class="card-body">
-                <div class="d-flex">
-                  <p class="d-flex flex-column">
-                    <span class="text-bold text-lg">$18,230.00</span>
-                    <span>Sales Over Time</span>
-                  </p>
-                  <p class="ml-auto d-flex flex-column text-right">
-                    <span class="text-success">
-                      <i class="fas fa-arrow-up"></i> 33.1%
-                    </span>
-                    <span class="text-muted">Since last month</span>
-                  </p>
-                </div>
-                <!-- /.d-flex -->
+            </div>
+            <div class="card-body">
+              <div class="d-flex">
+                <p class="d-flex flex-column">
+                  <?php 
+                    // Fetch data from database
+                    $deadCount = totalCount($db, 'dead_records', 'number_quantity');
+                    $stockCount = totalCount($db, 'breed_animal', 'stock_animal');
 
-                <div class="position-relative mb-4">
-                  <canvas id="sales-chart" height="200"></canvas>
-                </div>
-
-                <div class="d-flex flex-row justify-content-end">
-                  <span class="mr-2">
-                    <i class="fas fa-square text-primary"></i> This year
-                  </span>
-
+                    // Calculate the Percentage
+                    $totalCount = $deadCount['total'] + $stockCount['total'];
+                    $percen = ($deadCount['total'] / $totalCount) * 100;
+                  ?>
                   <span>
-                    <i class="fas fa-square text-gray"></i> Last year
+                    <span class="text-bold text-lg">
+                      <?php echo $deadCount['total']; ?>
+                    </span>
+                    Deads of
                   </span>
-                </div>
+                  <span>
+                    <span class="text-bold text-lg">
+                      <?php echo $totalCount; ?>
+                    </span>
+                    Total Over Time
+                  </span>
+                </p>
+                <p class="ml-auto d-flex flex-column text-right">
+                  <span class="text-danger">
+                    <i class="fas fa-arrow-up"></i> <?php echo number_format($percen, 1); ?>%
+                  </span>
+                  <span class="text-muted">in Overall Ratio</span>
+                </p>
+              </div>
+              <!-- /.d-flex -->
+
+              <div class="position-relative mb-4">
+                <canvas id="sales-chart" height="200"></canvas>
+              </div>
+
+              <div class="d-flex flex-row justify-content-end">
+                <span class="mr-2">
+                  <i class="fas fa-square text-primary"></i> Stock Animal
+                </span>
+
+                <span>
+                  <i class="fas fa-square text-gray"></i> Dead Animal
+                </span>
               </div>
             </div>
-            <!-- /.card -->
-
-            <!-- TO DO List -->
-            <div class="card">
-              <div class="card-header">
-                <h3 class="card-title">
-                  <i class="ion ion-clipboard mr-1"></i>
-                  To Do List
-                </h3>
-
-                <div class="card-tools">
-                  <ul class="pagination pagination-sm">
-                    <li class="page-item"><a href="#" class="page-link">&laquo;</a></li>
-                    <li class="page-item"><a href="#" class="page-link">1</a></li>
-                    <li class="page-item"><a href="#" class="page-link">2</a></li>
-                    <li class="page-item"><a href="#" class="page-link">3</a></li>
-                    <li class="page-item"><a href="#" class="page-link">&raquo;</a></li>
-                  </ul>
-                </div>
-              </div>
-              <!-- /.card-header -->
-              <div class="card-body">
-                <ul class="todo-list" data-widget="todo-list">
-                  <li>
-                    <!-- drag handle -->
-                    <span class="handle">
-                      <i class="fas fa-ellipsis-v"></i>
-                      <i class="fas fa-ellipsis-v"></i>
-                    </span>
-                    <!-- checkbox -->
-                    <div  class="icheck-primary d-inline ml-2">
-                      <input type="checkbox" value="" name="todo1" id="todoCheck1">
-                      <label for="todoCheck1"></label>
-                    </div>
-                    <!-- todo text -->
-                    <span class="text">Design a nice theme</span>
-                    <!-- Emphasis label -->
-                    <small class="badge badge-danger"><i class="far fa-clock"></i> 2 mins</small>
-                    <!-- General tools such as edit or delete-->
-                    <div class="tools">
-                      <i class="fas fa-edit"></i>
-                      <i class="fas fa-trash-o"></i>
-                    </div>
-                  </li>
-                  <li>
-                    <span class="handle">
-                      <i class="fas fa-ellipsis-v"></i>
-                      <i class="fas fa-ellipsis-v"></i>
-                    </span>
-                    <div  class="icheck-primary d-inline ml-2">
-                      <input type="checkbox" value="" name="todo2" id="todoCheck2" checked>
-                      <label for="todoCheck2"></label>
-                    </div>
-                    <span class="text">Make the theme responsive</span>
-                    <small class="badge badge-info"><i class="far fa-clock"></i> 4 hours</small>
-                    <div class="tools">
-                      <i class="fas fa-edit"></i>
-                      <i class="fas fa-trash-o"></i>
-                    </div>
-                  </li>
-                  <li>
-                    <span class="handle">
-                      <i class="fas fa-ellipsis-v"></i>
-                      <i class="fas fa-ellipsis-v"></i>
-                    </span>
-                    <div  class="icheck-primary d-inline ml-2">
-                      <input type="checkbox" value="" name="todo3" id="todoCheck3">
-                      <label for="todoCheck3"></label>
-                    </div>
-                    <span class="text">Let theme shine like a star</span>
-                    <small class="badge badge-warning"><i class="far fa-clock"></i> 1 day</small>
-                    <div class="tools">
-                      <i class="fas fa-edit"></i>
-                      <i class="fas fa-trash-o"></i>
-                    </div>
-                  </li>
-                  <li>
-                    <span class="handle">
-                      <i class="fas fa-ellipsis-v"></i>
-                      <i class="fas fa-ellipsis-v"></i>
-                    </span>
-                    <div  class="icheck-primary d-inline ml-2">
-                      <input type="checkbox" value="" name="todo4" id="todoCheck4">
-                      <label for="todoCheck4"></label>
-                    </div>
-                    <span class="text">Let theme shine like a star</span>
-                    <small class="badge badge-success"><i class="far fa-clock"></i> 3 days</small>
-                    <div class="tools">
-                      <i class="fas fa-edit"></i>
-                      <i class="fas fa-trash-o"></i>
-                    </div>
-                  </li>
-                  <li>
-                    <span class="handle">
-                      <i class="fas fa-ellipsis-v"></i>
-                      <i class="fas fa-ellipsis-v"></i>
-                    </span>
-                    <div  class="icheck-primary d-inline ml-2">
-                      <input type="checkbox" value="" name="todo5" id="todoCheck5">
-                      <label for="todoCheck5"></label>
-                    </div>
-                    <span class="text">Check your messages and notifications</span>
-                    <small class="badge badge-primary"><i class="far fa-clock"></i> 1 week</small>
-                    <div class="tools">
-                      <i class="fas fa-edit"></i>
-                      <i class="fas fa-trash-o"></i>
-                    </div>
-                  </li>
-                  <li>
-                    <span class="handle">
-                      <i class="fas fa-ellipsis-v"></i>
-                      <i class="fas fa-ellipsis-v"></i>
-                    </span>
-                    <div  class="icheck-primary d-inline ml-2">
-                      <input type="checkbox" value="" name="todo6" id="todoCheck6">
-                      <label for="todoCheck6"></label>
-                    </div>
-                    <span class="text">Let theme shine like a star</span>
-                    <small class="badge badge-secondary"><i class="far fa-clock"></i> 1 month</small>
-                    <div class="tools">
-                      <i class="fas fa-edit"></i>
-                      <i class="fas fa-trash-o"></i>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-              <!-- /.card-body -->
-              <div class="card-footer clearfix">
-                <button type="button" class="btn btn-primary float-right"><i class="fas fa-plus"></i> Add item</button>
-              </div>
-            </div>
-            <!-- /.card -->
+          </div>
+          <!-- /.card -->
 
           </section>
           <!-- /.Left col -->
           <!-- right col (We are only adding the ID to make the widgets sortable)-->
           <section class="col-lg-5 connectedSortable">
-
+          
             <!-- Calendar -->
-            <div class="card bg-gradient-success">
+            <div class="card bg-gradient-success collapsed-card">
               <div class="card-header border-0">
 
                 <h3 class="card-title">
@@ -737,18 +715,6 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
                 </h3>
                 <!-- tools card -->
                 <div class="card-tools">
-                  <!-- button with a dropdown -->
-                  <div class="btn-group">
-                    <button type="button" class="btn btn-success btn-sm dropdown-toggle" data-toggle="dropdown" data-offset="-52">
-                      <i class="fas fa-bars"></i>
-                    </button>
-                    <div class="dropdown-menu" role="menu">
-                      <a href="#" class="dropdown-item">Add new event</a>
-                      <a href="#" class="dropdown-item">Clear events</a>
-                      <div class="dropdown-divider"></div>
-                      <a href="#" class="dropdown-item">View calendar</a>
-                    </div>
-                  </div>
                   <button type="button" class="btn btn-success btn-sm" data-card-widget="collapse">
                     <i class="fas fa-minus"></i>
                   </button>
@@ -769,7 +735,7 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
 
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">Browser Usage</h3>
+                <h3 class="card-title">Total Animal Chart</h3>
 
                 <div class="card-tools">
                   <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -791,46 +757,30 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
                   </div>
                   <!-- /.col -->
                   <div class="col-md-4">
-                    <ul class="chart-legend clearfix">
-                      <li><i class="far fa-circle text-danger"></i> Chrome</li>
-                      <li><i class="far fa-circle text-success"></i> IE</li>
-                      <li><i class="far fa-circle text-warning"></i> FireFox</li>
-                      <li><i class="far fa-circle text-info"></i> Safari</li>
-                      <li><i class="far fa-circle text-primary"></i> Opera</li>
-                      <li><i class="far fa-circle text-secondary"></i> Navigator</li>
-                    </ul>
+                    <ul class="chart-legend clearfix"></ul>
                   </div>
                   <!-- /.col -->
                 </div>
                 <!-- /.row -->
               </div>
               <!-- /.card-body -->
-              <div class="card-footer p-0">
+              <div class="card-footer text-center p-0">
                 <ul class="nav nav-pills flex-column">
+                  <?php 
+                    $rows = getStockRecord($db);
+                    foreach ($rows as $row) { ?>
                   <li class="nav-item">
-                    <a href="#" class="nav-link">
-                      United States of America
-                      <span class="float-right text-danger">
-                        <i class="fas fa-arrow-down text-sm"></i>
-                        12%</span>
-                    </a>
-                  </li>
-                  <li class="nav-item">
-                    <a href="#" class="nav-link">
-                      India
+                    <a href="viewbreedanimal.php" class="nav-link">
+                      <span class="float-left text-primary">
+                        <?php echo $row['date']; ?>
+                      </span>
+                        <?php echo $row['type']; ?>
                       <span class="float-right text-success">
-                        <i class="fas fa-arrow-up text-sm"></i> 4%
+                        <i class="fas fa-plus text-sm"></i> <?php echo $row['stock']; ?>
                       </span>
                     </a>
                   </li>
-                  <li class="nav-item">
-                    <a href="#" class="nav-link">
-                      China
-                      <span class="float-right text-warning">
-                        <i class="fas fa-arrow-left text-sm"></i> 0%
-                      </span>
-                    </a>
-                  </li>
+                  <?php } ?>
                 </ul>
               </div>
               <!-- /.footer -->
@@ -871,17 +821,14 @@ if (isset($_SESSION['company_id'], $_SESSION['company_name'])) {
                       <img src="upload/<?php echo $row['product_photo'] ?>" alt="Product Image" width="70px" height="auto">
                     </div>
                     <div class="product-info">
-                      <a href="javascript:void(0)" class="product-title"><?php echo $row['product_name'] ?>
-                        <span class="badge badge-warning float-right"><?php echo $row['count'] ?> Total</span></a>
+                      <a href="javascript:void(0)" class="product-title">
+                        <?php echo $row['product_name'] ?>
+                        <span class="badge badge-warning float-right">
+                          <?php echo $row['count'] ?> Total
+                        </span>
+                      </a>
                       <span class="product-description">
-                      <?php
-                      // Check if the text is longer than 180 characters
-                          $productDes = $row['product_description'];
-                          if (strlen($productDes) > 180) {
-                              $productDes = substr($productDes, 0, 180) . '...'; 
-                              // Truncate the text and add ellipsis
-                          }
-                        echo $productDes; ?>
+                        <?php echo $row['product_description']; ?>
                       </span>
                     </div>
                   </li>
@@ -959,84 +906,126 @@ $(function () {
     zIndex: 999999
   })
   $('.connectedSortable .card-header').css('cursor', 'move')
-
-  // jQuery UI sortable for the todo list
-  $('.todo-list').sortable({
-    placeholder: 'sort-highlight',
-    handle: '.handle',
-    forcePlaceholderSize: true,
-    zIndex: 999999
-  })
-
-  // The Calender
-  $('#calendar').datetimepicker({
-    format: 'L',
-    inline: true
-  })
-
-  //-------------
-  // - PIE CHART -
-  //-------------
-  // Get context with jQuery - using jQuery's .get() method.
-  var pieChartCanvas = $('#pieChart').get(0).getContext('2d')
-  var pieData = {
-    labels: [
-      'Chrome',
-      'IE',
-      'FireFox',
-      'Safari',
-      'Opera',
-      'Navigator'
-    ],
-    datasets: [
-      {
-        data: [700, 500, 400, 600, 300, 100],
-        backgroundColor: ['#f56954', '#00a65a', '#f39c12', '#00c0ef', '#3c8dbc', '#d2d6de']
-      }
-    ]
-  }
-  var pieOptions = {
-    legend: {
-      display: false
-    }
-  }
-  // Create pie or douhnut chart
-  // You can switch between pie and douhnut using the method below.
-  // eslint-disable-next-line no-unused-vars
-  var pieChart = new Chart(pieChartCanvas, {
-    type: 'doughnut',
-    data: pieData,
-    options: pieOptions
-  })
-
-  //-----------------
-  // - END PIE CHART -
-  //-----------------
-
+  
   var ticksStyle = {
     fontColor: '#495057',
     fontStyle: 'bold'
-  }
+  };
+  
+  var mode = 'index';
+  var intersect = true;
 
-  var mode = 'index'
-  var intersect = true
+  // Data from PHP
+  var first7Dates = <?php echo json_encode($first7Dates); ?>;
+  var next7Dates = <?php echo json_encode($next7Dates); ?>;
+  var first7Quantities = <?php echo json_encode($first7Quantities); ?>;
+  var next7Quantities = <?php echo json_encode($next7Quantities); ?>;
 
-  var $salesChart = $('#sales-chart')
-  // eslint-disable-next-line no-unused-vars
+  // Combine the dates for the x-axis labels (use the first 7 dates only for the labels)
+  var labels = first7Dates.reverse();
+  var first7Quantities = first7Quantities.slice().reverse();
+  var next7Quantities = next7Quantities.slice().reverse();
+
+  // Get context with jQuery - using jQuery's .get() method.
+  var $visitorsChart = $('#visitors-chart');
+
+  // Create the line chart
+  var visitorsChart = new Chart($visitorsChart, {
+      type: 'line',
+      data: {
+          labels: labels,
+          datasets: [{
+              label: 'This Week',
+              type: 'line',
+              data: first7Quantities,
+              backgroundColor: 'transparent',
+              borderColor: '#007bff',
+              pointBorderColor: '#007bff',
+              pointBackgroundColor: '#007bff',
+              fill: false
+              // pointHoverBackgroundColor: '#007bff',
+              // pointHoverBorderColor    : '#007bff'
+          },
+          {
+              label: 'Last Week',
+              type: 'line',
+              data: next7Quantities,
+              backgroundColor: 'transparent',
+              borderColor: '#ced4da',
+              pointBorderColor: '#ced4da',
+              pointBackgroundColor: '#ced4da',
+              fill: false
+              // pointHoverBackgroundColor: '#ced4da',
+              // pointHoverBorderColor    : '#ced4da'
+          }]
+      },
+      options: {
+          maintainAspectRatio: false,
+          tooltips: {
+              mode: mode,
+              intersect: intersect
+          },
+          hover: {
+              mode: mode,
+              intersect: intersect
+          },
+          legend: {
+              display: false
+          },
+          scales: {
+              yAxes: [{
+                  gridLines: {
+                      display: true,
+                      lineWidth: '4px',
+                      color: 'rgba(0, 0, 0, .2)',
+                      zeroLineColor: 'transparent'
+                  },
+                  ticks: $.extend({
+                      beginAtZero: true,
+                      suggestedMax: 200
+                  }, ticksStyle)
+              }],
+              xAxes: [{
+                  display: true,
+                  gridLines: {
+                      display: false
+                  },
+                  ticks: ticksStyle
+              }]
+          }
+      }
+  });
+  
+  // Data from PHP
+  <?php $rows = getDeadRecords($db); ?>
+  var labels = <?php echo json_encode(array_column($rows, 'date')); ?>;
+  var stockAnimalData = <?php echo json_encode(array_column($rows, 'stock_animal')); ?>;
+  var deadData = <?php echo json_encode(array_column($rows, 'dead')); ?>;
+  var additionalLabels = <?php echo json_encode(array_column($rows, 'breed_type')); ?>; // Additional labels
+  
+  // Combine the current labels and additional labels for multi-line labels
+  var multiLineLabels = labels.map((label, index) => [label, ' ' + additionalLabels[index]]);
+  
+  // Get context with jQuery - using jQuery's .get() method.
+  var $salesChart = $('#sales-chart');
+  
+  // Create the bar chart
   var salesChart = new Chart($salesChart, {
     type: 'bar',
     data: {
-      labels: ['JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'],
+      labels: multiLineLabels,
       datasets: [
         {
+          label: 'Stock Animal',
           backgroundColor: '#007bff',
           borderColor: '#007bff',
-          data: [1000, 2000, 3000, 2500, 2700, 2500, 3000]
+          data: stockAnimalData
         },
         {
+          label: 'Dead Animal',
           backgroundColor: '#ced4da',
           borderColor: '#ced4da',
-          data: [700, 1700, 2700, 2000, 1800, 1500, 2000]
+          data: deadData
         }
       ]
     },
@@ -1047,112 +1036,125 @@ $(function () {
         intersect: intersect
       },
       hover: {
-        mode: mode,
-        intersect: intersect
-      },
-      legend: {
-        display: false
-      },
-      scales: {
-        yAxes: [{
-          // display: false,
-          gridLines: {
-            display: true,
-            lineWidth: '4px',
-            color: 'rgba(0, 0, 0, .2)',
-            zeroLineColor: 'transparent'
+            mode: mode,
+            intersect: intersect
           },
-          ticks: $.extend({
-            beginAtZero: true,
-
-            // Include a dollar sign in the ticks
-            callback: function (value) {
-              if (value >= 1000) {
-                value /= 1000
-                value += 'k'
+          legend: {
+            display: false
+          },
+          scales: {
+            yAxes: [{
+              gridLines: {
+                display: true,
+                lineWidth: '4px',
+                color: 'rgba(0, 0, 0, .2)',
+                      zeroLineColor: 'transparent'
+                    },
+                  ticks: $.extend({
+                    beginAtZero: true,
+                    callback: function (value) {
+                      if (value >= 1000) {
+                        value /= 1000;
+                        value += 'k';
+                      }
+                      
+                      return value;
+                    }
+                  }, ticksStyle)
+              }],
+              xAxes: [{
+                display: true,
+                gridLines: {
+                  display: false
+                    },
+                    ticks: ticksStyle
+                  }]
+                }
               }
-
-              return '$' + value
-            }
-          }, ticksStyle)
-        }],
-        xAxes: [{
-          display: true,
-          gridLines: {
-            display: false
-          },
-          ticks: ticksStyle
-        }]
-      }
+  });
+  
+  //-------------
+  // - PIE CHART -
+  //-------------
+  
+  // Base colors
+  var baseColors = ['#f56954', '#00a65a', '#f39c12', '#00c0ef', '#3c8dbc', '#d2d6de'];
+  
+  // Function to generate a random color
+  function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+      color += letters[Math.floor(Math.random() * 16)];
     }
-  })
-
-  var $visitorsChart = $('#visitors-chart')
-  // eslint-disable-next-line no-unused-vars
-  var visitorsChart = new Chart($visitorsChart, {
-    data: {
-      labels: ['18th', '20th', '22nd', '24th', '26th', '28th', '30th'],
-      datasets: [{
-        type: 'line',
-        data: [100, 120, 170, 167, 180, 177, 160],
-        backgroundColor: 'transparent',
-        borderColor: '#007bff',
-        pointBorderColor: '#007bff',
-        pointBackgroundColor: '#007bff',
-        fill: false
-        // pointHoverBackgroundColor: '#007bff',
-        // pointHoverBorderColor    : '#007bff'
-      },
+    return color;
+  }
+  
+  // Get context with jQuery - using jQuery's .get() method.
+  var pieChartCanvas = $('#pieChart').get(0).getContext('2d')
+  
+  <?php $rows = getStock($db); ?>
+  // Data labels and values from PHP
+  var pieLabels = <?php 
+    echo json_encode(array_column($rows, 'animal_type')); 
+    ?>;
+  
+  var pieDataValues = <?php 
+    echo json_encode(array_column($rows, 'total_stock_animal')); 
+    ?>;
+  
+  // Assign colors dynamically
+  var pieColors = pieLabels.map((label, index) => {
+    if (index < baseColors.length) {
+      return baseColors[index];
+    } else {
+      return getRandomColor();
+    }
+  });
+  
+  var pieData = {
+    labels: pieLabels,
+    datasets: [
       {
-        type: 'line',
-        data: [60, 80, 70, 67, 80, 77, 100],
-        backgroundColor: 'tansparent',
-        borderColor: '#ced4da',
-        pointBorderColor: '#ced4da',
-        pointBackgroundColor: '#ced4da',
-        fill: false
-        // pointHoverBackgroundColor: '#ced4da',
-        // pointHoverBorderColor    : '#ced4da'
-      }]
-    },
-    options: {
-      maintainAspectRatio: false,
-      tooltips: {
-        mode: mode,
-        intersect: intersect
-      },
-      hover: {
-        mode: mode,
-        intersect: intersect
-      },
-      legend: {
-        display: false
-      },
-      scales: {
-        yAxes: [{
-          // display: false,
-          gridLines: {
-            display: true,
-            lineWidth: '4px',
-            color: 'rgba(0, 0, 0, .2)',
-            zeroLineColor: 'transparent'
-          },
-          ticks: $.extend({
-            beginAtZero: true,
-            suggestedMax: 200
-          }, ticksStyle)
-        }],
-        xAxes: [{
-          display: true,
-          gridLines: {
-            display: false
-          },
-          ticks: ticksStyle
-        }]
+        data: pieDataValues,
+        backgroundColor: pieColors
       }
+    ]
+  }
+  
+  var pieOptions = {
+    legend: {
+      display: false
     }
-  })
-})
+  }
+  
+  // Create pie or doughnut chart
+  var pieChart = new Chart(pieChartCanvas, {
+    type: 'doughnut',
+      data: pieData,
+      options: pieOptions
+    });
+    
+    // Generate legend items with colors
+    $(document).ready(function() {
+      var legendHtml = '';
+      pieLabels.forEach((label, index) => {
+        var color = pieColors[index];
+        legendHtml += `<li><i class="far fa-circle" style="color: ${color};"></i> ${label}</li>`;
+      });
+      $('.chart-legend').html(legendHtml);
+    });
+    
+    //-----------------
+    // - END PIE CHART -
+    //-----------------
+    
+    // The Calender
+    $('#calendar').datetimepicker({
+      format: 'L',
+      inline: true
+    })
+  });
 </script>
 </body>
 </html>
