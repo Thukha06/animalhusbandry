@@ -29,10 +29,25 @@ function totalCount($db, $tbname, $colname) {
   return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+function totalCountJoin($db, $tbname1, $tbname2, $colname1, $colname2, $joincol) {
+  // SQL query to count rows
+  $sql = "SELECT SUM(t1.$colname1 * t2.$colname2) as total 
+          FROM $tbname1 t1
+          JOIN $tbname2 t2
+            ON t1.$joincol = t2.$joincol";
+  $stmt = $db->prepare($sql);
+  $stmt->execute();
+
+  // Fetch the result
+  return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
 function getProductRecords($db) {
-  $sql = "SELECT SUM(product_quantity) AS qty, 
-          product_date AS date
-          FROM product_records
+  $sql = "SELECT SUM(pr.product_quantity * pt.product_price) AS qty, 
+          pr.product_date AS date
+          FROM product_records pr
+          JOIN product_type pt
+            ON pr.product_id = pt.product_id
           GROUP BY date
           ORDER BY date DESC
           LIMIT 14";
@@ -541,13 +556,13 @@ function getStockRecord($db) {
               <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-tag"></i></span>
 
               <div class="info-box-content">
-                <span class="info-box-text">Product Inventory</span>
+                <span class="info-box-text">Product Inventory Value</span>
                 <?php 
                       // Fetch the result
-                      $row = totalCount($db, 'product_records', 'product_quantity');
+                      $row = totalCountJoin($db, 'product_records', 'product_type', 'product_quantity', 'product_price', 'product_id');
                       
                       // Display the count
-                      echo '<span class="info-box-number">' . $row['total'] . '</span>';
+                      echo '<span class="info-box-number"> $' . $row['total'] . '</span>';
                     ?>
               </div>
               <!-- /.info-box-content -->
@@ -595,9 +610,10 @@ function getStockRecord($db) {
                   <?php 
                     /* NOTICE! Due to the varying units of the products, the numbers are not
                     the accurate representation of data. Further methods of calculation are needed,
-                    which I didn't bother with. >_< */
+                    which I didn't bother with. >_<
+                    24/08/2024 - Solved! Everything is working and accurate :D */
                     // Fetch data from database
-                    $productCount = totalCount($db, 'product_records', 'product_quantity'); 
+                    $productCount = totalCountJoin($db, 'product_records', 'product_type', 'product_quantity', 'product_price', 'product_id');
                     $rows = getProductRecords($db);
                     $dates = array_column($rows, 'date');
                     $quantities = array_column($rows, 'qty');
@@ -613,13 +629,17 @@ function getStockRecord($db) {
                     $totalNext7Quantities = array_sum($next7Quantities);
 
                     // Calculate the Percentage
-                    $percen = 100 - (($totalNext7Quantities / $totalFirst7Quantities) * 100);
+                    if ($totalFirst7Quantities > 0) {
+                      $percen = abs((($totalNext7Quantities - $totalFirst7Quantities) / $totalFirst7Quantities) * 100);
+                    } else {
+                      $percen = $totalNext7Quantities > 0 ? 100 : 0; // Handle cases where totalFirst7Quantities is zero
+                    }
                   ?>
                   <span>
                     <span class="text-bold text-lg">
-                      <?php echo $productCount['total']; ?>
+                      <?php echo '$' . $productCount['total']; ?>
                     </span>
-                     Products
+                     Worth of Value
                   </span>
                   <span>Produced Over Time</span>
                 </p>
@@ -976,7 +996,13 @@ $(function () {
           maintainAspectRatio: false,
           tooltips: {
               mode: mode,
-              intersect: intersect
+              intersect: intersect,
+              callbacks: {
+                label: function(tooltipItem, data) {
+                    var datasetLabel = data.datasets[tooltipItem.datasetIndex].label || '';
+                    return datasetLabel + ': $' + tooltipItem.yLabel;
+                }
+            }
           },
           hover: {
               mode: mode,
