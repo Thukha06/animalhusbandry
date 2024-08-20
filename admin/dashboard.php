@@ -42,15 +42,28 @@ function getProductRecords($db) {
 }
 
 function getDeadRecords($db) {
-  $sql = "SELECT bt.breed_type, ba.stock_animal, 
-          SUM(dr.number_quantity) AS dead, dr.dead_date AS date
-          FROM dead_records dr
-          JOIN breed_animal ba
-              ON dr.breed_id = ba.breed_id
-          JOIN breed_technology bt
-              ON dr.breed_id = bt.breed_id
-          GROUP BY dr.breed_id
-          ORDER BY date ASC
+  $sql = "SELECT 
+            bt.breed_type, 
+            ba.stock_animal, 
+            dr.number_quantity AS dead, 
+            dr.dead_date AS date
+          FROM 
+            dead_records dr
+          JOIN 
+            breed_animal ba ON dr.breed_id = ba.breed_id
+          JOIN 
+            breed_technology bt ON dr.breed_id = bt.breed_id
+          JOIN 
+            ( SELECT 
+                breed_id, 
+                MAX(dead_date) AS latest_date
+              FROM 
+                dead_records
+              GROUP BY 
+                breed_id
+            ) latest ON dr.breed_id = latest.breed_id AND dr.dead_date = latest.latest_date
+          ORDER BY 
+            date DESC
           LIMIT 8";
   $stmt = $db->prepare($sql);
   $stmt->execute();
@@ -1013,19 +1026,19 @@ $(function () {
   var salesChart = new Chart($salesChart, {
     type: 'bar',
     data: {
-      labels: multiLineLabels,
+      labels: multiLineLabels.reverse(),
       datasets: [
         {
           label: 'Stock Animal',
           backgroundColor: '#007bff',
           borderColor: '#007bff',
-          data: stockAnimalData
+          data: stockAnimalData.reverse()
         },
         {
           label: 'Dead Animal',
           backgroundColor: '#ced4da',
           borderColor: '#ced4da',
-          data: deadData
+          data: deadData.reverse()
         }
       ]
     },
@@ -1158,3 +1171,4 @@ $(function () {
 </script>
 </body>
 </html>
+<?php $db = null; ?>
