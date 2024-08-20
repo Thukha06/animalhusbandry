@@ -81,12 +81,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['submit'])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
   // Retrieve and validate POST data
   $product_name = isset($_POST['productname']) ? $_POST['productname'] : null;
+  $product_price = isset($_POST['price']) ? $_POST['price'] : null;
   $product_unit = isset($_POST['unit']) ? $_POST['unit'] : null;
   $product_description = isset($_POST['description']) ? $_POST['description'] : null;
 
   // Validate inputs
   if (empty($product_name)) {
     $errors[] = "Error: Empty field.<br>Product name is required.";
+  }
+
+  if (empty($product_price)) {
+    $errors[] = "Error: Empty field.<br>Product price is required.";
+  } elseif (!is_numeric($product_price)) {
+    $errors[] = "Error: Invalid value.<br>Product price must be a number.";
   }
 
   if (empty($product_unit)) {
@@ -118,11 +125,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
 
   if (empty($errors)) {
     // Proceed with the database insertion
-    $sql = "INSERT INTO product_type (product_name, product_unit, product_photo, product_description) 
-            VALUES (:product_name, :product_unit, :product_photo, :product_description)";
+    $sql = "INSERT INTO product_type (product_name, product_price, product_unit, product_photo, product_description) 
+            VALUES (:product_name, :product_price, :product_unit, :product_photo, :product_description)";
     $stmt = $db->prepare($sql);
 
     $stmt->bindParam(':product_name', $product_name, PDO::PARAM_STR);
+    $stmt->bindParam(':product_price', $product_price, PDO::PARAM_INT);
     $stmt->bindParam(':product_unit', $product_unit, PDO::PARAM_STR);
     $stmt->bindParam(':product_photo', $filename, PDO::PARAM_STR);
     $stmt->bindParam(':product_description', $product_description, PDO::PARAM_STR);
@@ -493,9 +501,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
                       <input type="text" name="productname" class="form-control" id="productname" placeholder="Enter product name">
                     </div>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-md-2">
                     <div class="form-group">
-                      <label for="unit">Assign Unit (eg. Kg, L, Lb, etc.)</label>
+                      <label for="price">Price</label>
+                      <input type="number" name="price" class="form-control" id="price" placeholder="Enter price">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="unit">Unit (eg. Kg, L, Lb, etc.)</label>
                       <input type="text" name="unit" class="form-control" id="unit" placeholder="Assign product unit">
                     </div>
                   </div>
@@ -564,10 +578,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
                       <input type="number" name="productquantity" class="form-control" id="productquantity" placeholder="Enter product quantity">
                     </div>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-md-2">
                     <div class="form-group">
                       <label for="unit">Unit</label>
                       <input type="text" name="unit" class="form-control" id="unit" placeholder="Select First" disabled>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-group">
+                      <label for="price">Price</label>
+                      <input type="text" name="price" class="form-control" id="price" placeholder="Select First" disabled>
                     </div>
                   </div>
                   </div>
@@ -633,27 +653,48 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
 <!-- Page specific script -->
 <script>
 $(document).ready(function() {
+  let originalPrice = 0;  // Variable to store the original unit price
 
-    // Bind the change event correctly for Select2
-    $('#product_id').on('change', function() {
-        const product_id = $(this).val();
-        if (product_id) {
-            fetch('dist/php/get_unit.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `product_id=${product_id}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('unit').value = data.unit;
-            })
-            .catch(error => console.error('Error fetching unit data:', error));
-        } else {
-            document.getElementById('unit').value = '';
-        }
-    });
+  $('#product_id').on('change', function() {
+      const product_id = $(this).val();
+      if (product_id) {
+          fetch('dist/php/get_unit.php', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: `product_id=${product_id}`
+          })
+          .then(response => response.json())
+          .then(data => {
+              document.getElementById('unit').value = '/' + data.unit;
+              originalPrice = parseFloat(data.price);  // Store the original unit price
+              document.getElementById('price').value = "$" + originalPrice.toFixed(2);  // Display the original unit price
+              $('#productquantity').trigger('input');  // Trigger price recalculation if quantity is already entered
+          })
+          .catch(error => console.error('Error fetching unit data:', error));
+      } else {
+          document.getElementById('unit').value = '';
+          document.getElementById('price').value = '';
+      }
+  });
+
+  $('#productquantity').on('input', function() {  // Use 'input' event for real-time updates
+      const quantity = parseInt($(this).val(), 10);  // Ensure quantity is treated as an integer
+      const priceInput = document.getElementById('price');
+
+      if (quantity && !isNaN(quantity)) {
+          // Calculate the new total price using the original unit price
+          let totalPrice = originalPrice * quantity;
+
+          // Update the price field with the new calculated price
+          priceInput.value = "$" + totalPrice.toFixed(2);
+      } else {
+          // If no quantity is entered or it's invalid, revert to the original unit price
+          priceInput.value = "$" + originalPrice.toFixed(2);
+      }
+  });
+
 });
 </script>
 <script>
