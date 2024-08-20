@@ -111,18 +111,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditRecord'])) {
     $product_quantity = $_POST['productquantity'];
     $product_date = $_POST['date'];
 
-    $errors = [];
     if (empty($product_record_id) || !is_numeric($product_record_id)) {
-        $errors[] = "Invalid product record ID.";
+        $error[] = "Invalid product record ID.";
     }
     if (empty($product_quantity) || !is_numeric($product_quantity)) {
-        $errors[] = "Invalid product quantity.";
+        $error[] = "Invalid product quantity.";
     }
     if (empty($product_date)) {
-        $errors[] = "Invalid product date.";
+        $error[] = "Invalid product date.";
     }
 
-    if (empty($errors)) {
+    if (empty($error)) {
         $sql = "UPDATE product_records 
                 SET product_quantity = :product_quantity, product_date = :product_date 
                 WHERE product_record_id = :productrecordId";
@@ -140,6 +139,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditRecord'])) {
         } catch (PDOException $e) {
             setFeedback('error', "Error: " . $e->getMessage(), $success, $error);
         }
+    } else {
+      setFeedback('error', "Failed to update a product record", $success, $error);
     }
 }
 
@@ -147,25 +148,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditRecord'])) {
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
     $product_id = $_POST['product_id'];
     $product_name = $_POST['product_name'];
+    $product_price = $_POST['product_price'];
     $product_unit = $_POST['product_unit'];
     $product_description = $_POST['product_description'];
     $current_photo = $_POST['current_photo'];
 
-    $errors = [];
     if (empty($product_id) || !is_numeric($product_id)) {
-        $errors[] = "Invalid product ID.";
+        $error[] = "Invalid product ID.";
     }
     if (empty($product_name)) {
-        $errors[] = "Product name is required.";
+        $error[] = "Product name is required.";
+    }
+    if (empty($product_price) || !is_numeric($product_price)) {
+        $error[] = "Invalid product price.";
     }
     if (empty($product_unit)) {
-        $errors[] = "Product unit is required.";
+        $error[] = "Product unit is required.";
     }
     if (empty($product_description)) {
-        $errors[] = "Product description is required.";
+        $error[] = "Product description is required.";
     }
 
-    if (empty($errors)) {
+    if (empty($error)) {
         if (!empty($_FILES["uploaded_file"]) && $_FILES['uploaded_file']['error'] == 0) {
             $dir = "upload/";
             $filename = $_FILES['uploaded_file']['name'];
@@ -180,12 +184,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                     }
 
                     $sql = "UPDATE product_type 
-                            SET product_name = :product_name, product_unit = :product_unit, 
+                            SET product_name = :product_name, product_price = :product_price, product_unit = :product_unit, 
                             product_photo = :product_photo, product_description = :product_description 
                             WHERE product_id = :product_id";
                     $stmt = $db->prepare($sql);
 
                     $stmt->bindParam(':product_name', $product_name);
+                    $stmt->bindParam(':product_price', $product_price);
                     $stmt->bindParam(':product_unit', $product_unit);
                     $stmt->bindParam(':product_photo', $filename);
                     $stmt->bindParam(':product_description', $product_description);
@@ -205,11 +210,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
             }
         } else {
             $sql = "UPDATE product_type 
-                    SET product_name = :product_name, product_unit = :product_unit, product_description = :product_description 
+                    SET product_name = :product_name, product_price = :product_price, product_unit = :product_unit, product_description = :product_description 
                     WHERE product_id = :product_id";
             $stmt = $db->prepare($sql);
 
             $stmt->bindParam(':product_name', $product_name);
+            $stmt->bindParam(':product_price', $product_price);
             $stmt->bindParam(':product_unit', $product_unit);
             $stmt->bindParam(':product_description', $product_description);
             $stmt->bindParam(':product_id', $product_id);
@@ -217,9 +223,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
             if ($stmt->execute()) {
                 setFeedback('success', "A Product was updated successfully without new photo", $success, $error);
             } else {
-                setFeedback('error', "Failed to update product type", $success, $error);
+                setFeedback('error', "Failed to update a product", $success, $error);
             }
         }
+    } else {
+      setFeedback('error', "Failed to update a product", $success, $error);
     }
 }
     
@@ -558,10 +566,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
 
               $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
               foreach ($result as $row) {
+                $product_id = $row['product_id'];
                 $product_record_id = $row['product_record_id'];
                 $product_record = $row['product_name'];
                 $product_quantity = $row['product_quantity'];
                 $product_unit = $row['product_unit'];
+                $product_price = $row['product_price'];
                 $product_date = $row['product_date'];
               }
           ?>
@@ -577,6 +587,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                   <!-- form start -->
                   <form enctype="multipart/form-data" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']);?>" method="post">
                     <div class="card-body">
+                    <input type="hidden" name="product_id" value="<?php echo $product_id; ?>">
                     <input type="hidden" name="productrecordId" value="<?php echo $product_record_id; ?>">
                       <div class="form-group">
                         <label for="productrecord">Product Name</label>
@@ -590,10 +601,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                           <input type="number" name="productquantity" class="form-control" id="productquantity" placeholder="Enter product quantity" value="<?php echo $product_quantity; ?>">
                         </div>
                       </div>
-                      <div class="col-md-6">
+                      <div class="col-md-3">
                         <div class="form-group">
                           <label for="unit">Unit</label>
-                          <input type="text" name="unit" class="form-control" id="unit" placeholder="Product Unit" value="<?php echo $product_unit; ?>" disabled>
+                          <div class="input-group">
+                            <div class="input-group-prepend">
+                              <span class="input-group-text">/</span>
+                            </div>
+                            <input type="text" name="unit" class="form-control" id="unit" placeholder="Product Unit" value="<?php echo $product_unit; ?>" disabled>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
+                        <div class="form-group">
+                          <label for="showprice">Price</label>
+                          <div class="input-group">
+                            <div class="input-group-prepend">
+                              <span class="input-group-text">$</span>
+                            </div>
+                            <input type="text" name="price" class="form-control" id="showprice" placeholder="Product Price" value="<?php echo $product_quantity * $product_price; ?>" disabled>
+                          </div>
                         </div>
                       </div>
                       </div>
@@ -627,6 +654,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
               foreach ($result as $row) {
                 $product_id = $row['product_id'];
                 $product_name = $row['product_name'];
+                $product_price = $row['product_price'];
                 $product_unit = $row['product_unit'];
                 $product_photo = $row['product_photo'];
                 $product_description = $row['product_description'];
@@ -653,10 +681,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                           <input type="text" name="product_name" class="form-control" id="product_name" placeholder="Enter product name" value="<?php echo $product_name; ?>">
                         </div>
                       </div>
-                      <div class="col-md-6">
+                      <div class="col-md-3">
+                        <div class="form-group">
+                          <label for="product_price">Price</label>
+                          <div class="input-group">
+                            <div class="input-group-prepend">
+                              <span class="input-group-text">$</span>
+                            </div>
+                            <input type="number" step="0.01" min="0" placeholder="0.00" name="product_price" class="form-control" id="product_price" value="<?php echo $product_price; ?>">
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-3">
                         <div class="form-group">
                           <label for="product_unit">Unit</label>
-                          <input type="text" name="product_unit" class="form-control" id="product_unit" placeholder="Enter product unit" value="<?php echo $product_unit; ?>">
+                          <div class="input-group">
+                            <div class="input-group-prepend">
+                              <span class="input-group-text">/</span>
+                            </div>
+                            <input type="text" name="product_unit" class="form-control" id="product_unit" placeholder="Enter product unit" value="<?php echo $product_unit; ?>">
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -697,6 +741,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                   <thead>
                   <tr>
                     <th>Product Name</th>
+                    <th>Price</th>
                     <th>Unit</th>
                     <th>Photo</th>
                     <th>Description</th>
@@ -721,7 +766,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                       <?php echo $row['product_name'] ?>
                     </td>
                     <td>
-                      <?php echo $row['product_unit'] ?>
+                      <?php echo '$' . $row['product_price'] ?>
+                    </td>
+                    <td>
+                      <?php echo '/' . $row['product_unit'] ?>
                     </td>
                     <td style="width: 150px;">
                       <img src="upload/<?php echo $row['product_photo'] ?>" width="150px" height="auto">
@@ -772,6 +820,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                     <th>Product Name</th>
                     <th>Product Quantity</th>
                     <th>Unit</th>
+                    <th>Total Price</th>
                     <th>Date</th>
                     <th>Action</th>
                   </tr>
@@ -797,15 +846,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
                       <?php echo $row['product_name'] ?>
                     </td>
                     <td>
-                      <?php echo $row['product_quantity'] ?>
+                      <?php echo $quantity = $row['product_quantity'] ?>
                     </td>
                     <td>
                       <?php echo $row['product_unit'] ?>
                     </td>
                     <td>
+                      <?php echo '$' . $quantity * $row['product_price']  ?>
+                    </td>
+                    <td>
                       <?php echo $row['product_date'] ?>
                     </td>
-                    <td style="max-width: 50px;">
+                    <td style="max-width: 60px;">
                     <div class="row">
                         <div class="col-6">
                           <?php 
@@ -900,6 +952,48 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['EditProduct'])) {
 
   // Initial resize to fit content after it has been set
   resizeTextarea();
+</script>
+<script>
+$(document).ready(function() {
+    // Retrieve original price from PHP variable
+    let originalPrice = parseFloat('<?php echo $product_price; ?>'); // Ensure this is correctly echoed from PHP
+
+    // Handle product quantity input changes
+    $('#productquantity').on('input', function() {  // Use 'input' event for real-time updates
+        const quantity = parseInt($(this).val(), 10);  // Ensure quantity is treated as an integer
+        const priceInput = document.getElementById('showprice');
+
+        if (quantity && !isNaN(quantity)) {
+            // Calculate the new total price using the original unit price
+            let totalPrice = originalPrice * quantity;
+
+            // Update the price field with the new calculated price
+            priceInput.value = totalPrice.toFixed(2);  // Format as decimal
+        } else {
+            // If no quantity is entered or it's invalid, revert to the original price
+            priceInput.value = (originalPrice * 0).toFixed(2);  // Show $0.00 when quantity is invalid or empty
+        }
+    });
+
+    // Optionally handle fetch call if required for additional data
+    // (e.g., to verify or update product data)
+    const productId = $('input[name="product_id"]').val(); // Retrieve hidden input value
+    if (productId) {
+        fetch('dist/php/get_unit.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `product_id=${productId}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            originalPrice = parseFloat(data.price);  // Update original price if fetched data is required
+            $('#productquantity').trigger('input');  // Trigger recalculation with new data
+        })
+        .catch(error => console.error('Error fetching unit data:', error));
+    }
+});
 </script>
 <script>
   function ConfirmDelete(){

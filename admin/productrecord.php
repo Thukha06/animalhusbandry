@@ -130,7 +130,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
     $stmt = $db->prepare($sql);
 
     $stmt->bindParam(':product_name', $product_name, PDO::PARAM_STR);
-    $stmt->bindParam(':product_price', $product_price, PDO::PARAM_INT);
+    $stmt->bindParam(':product_price', $product_price, PDO::PARAM_STR);
     $stmt->bindParam(':product_unit', $product_unit, PDO::PARAM_STR);
     $stmt->bindParam(':product_photo', $filename, PDO::PARAM_STR);
     $stmt->bindParam(':product_description', $product_description, PDO::PARAM_STR);
@@ -501,16 +501,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
                       <input type="text" name="productname" class="form-control" id="productname" placeholder="Enter product name">
                     </div>
                   </div>
-                  <div class="col-md-2">
+                  <div class="col-md-3">
                     <div class="form-group">
                       <label for="price">Price</label>
-                      <input type="number" name="price" class="form-control" id="price" placeholder="Enter price">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">$</span>
+                        </div>
+                        <input type="number" step="0.01" min="0" placeholder="0.00" name="price" class="form-control" id="price">
+                      </div>
                     </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <div class="form-group">
                       <label for="unit">Unit (eg. Kg, L, Lb, etc.)</label>
-                      <input type="text" name="unit" class="form-control" id="unit" placeholder="Assign product unit">
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">/</span>
+                        </div>
+                        <input type="text" name="unit" class="form-control" id="unit" placeholder="Assign unit">
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -578,16 +588,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create'])) {
                       <input type="number" name="productquantity" class="form-control" id="productquantity" placeholder="Enter product quantity">
                     </div>
                   </div>
-                  <div class="col-md-2">
+                  <div class="col-md-3">
                     <div class="form-group">
                       <label for="unit">Unit</label>
-                      <input type="text" name="unit" class="form-control" id="unit" placeholder="Select First" disabled>
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">/</span>
+                        </div>
+                        <input type="text" name="unit" class="form-control" id="unit" placeholder="Select First" disabled>
+                      </div>
                     </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <div class="form-group">
-                      <label for="price">Price</label>
-                      <input type="text" name="price" class="form-control" id="price" placeholder="Select First" disabled>
+                      <label for="showprice">Price</label>
+                      <div class="input-group">
+                        <div class="input-group-prepend">
+                          <span class="input-group-text">$</span>
+                        </div>
+                        <input type="text" name="price" class="form-control" id="showprice" placeholder="Select First" disabled>
+                      </div>
                     </div>
                   </div>
                   </div>
@@ -667,31 +687,31 @@ $(document).ready(function() {
           })
           .then(response => response.json())
           .then(data => {
-              document.getElementById('unit').value = '/' + data.unit;
+              document.getElementById('unit').value = data.unit;
               originalPrice = parseFloat(data.price);  // Store the original unit price
-              document.getElementById('price').value = "$" + originalPrice.toFixed(2);  // Display the original unit price
+              document.getElementById('showprice').value = originalPrice.toFixed(2);  // Display the original unit price
               $('#productquantity').trigger('input');  // Trigger price recalculation if quantity is already entered
           })
           .catch(error => console.error('Error fetching unit data:', error));
       } else {
           document.getElementById('unit').value = '';
-          document.getElementById('price').value = '';
+          document.getElementById('showprice').value = '';
       }
   });
 
   $('#productquantity').on('input', function() {  // Use 'input' event for real-time updates
       const quantity = parseInt($(this).val(), 10);  // Ensure quantity is treated as an integer
-      const priceInput = document.getElementById('price');
+      const priceInput = document.getElementById('showprice');
 
       if (quantity && !isNaN(quantity)) {
           // Calculate the new total price using the original unit price
           let totalPrice = originalPrice * quantity;
 
           // Update the price field with the new calculated price
-          priceInput.value = "$" + totalPrice.toFixed(2);
+          priceInput.value = totalPrice.toFixed(2);
       } else {
           // If no quantity is entered or it's invalid, revert to the original unit price
-          priceInput.value = "$" + originalPrice.toFixed(2);
+          priceInput.value = originalPrice.toFixed(2);
       }
   });
 
