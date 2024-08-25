@@ -611,7 +611,7 @@ function getStockRecord($db) {
                     /* NOTICE! Due to the varying units of the products, the numbers are not
                     the accurate representation of data. Further methods of calculation are needed,
                     which I didn't bother with. >_<
-                    24/08/2024 - Solved! Everything is working and accurate :D */
+                    20/08/2024 - Solved! Everything is working and accurate :D */
                     // Fetch data from database
                     $productCount = totalCountJoin($db, 'product_records', 'product_type', 'product_quantity', 'product_price', 'product_id');
                     $rows = getProductRecords($db);
